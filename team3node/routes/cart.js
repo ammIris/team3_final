@@ -1,17 +1,13 @@
 import express from "express";
 import db from "../module/connect.js";
-
 import { createLinePayClient } from "line-pay-merchant";
 import util from "util";
-
 import { v4 as uuidv4 } from "uuid";
 import dayjs from "dayjs";
-import axios from "axios";
 import "dotenv/config.js";
-import cors from "cors";
+// import cors from "cors";
 
 const cartRouter = express.Router();
-const router = express.Router();
 
 const corsOptions = {
   credentials: true,
@@ -24,16 +20,6 @@ const corsOptions = {
 // ----------------------消費紀錄 my-order ----------------------
 cartRouter.get("/:user_id/my-order", async (req, res) => {
   const user_id = parseInt(req.params.user_id) || 0;
-  // let output = {
-  //   success: false,
-  //   rows: [],
-  // };
-  // const sql = `SELECT * FROM order_general WHERE
-  // user_id = ${user_id} ORDER BY order_date DESC `;
-  // const [rows] = await db.query(sql);
-  // for (let r of rows) {
-  //   r.order_date = dayjs(r.order_date).format("YYYY/MM/DD");
-  // }
 
   const sql = `SELECT * FROM order_general WHERE 
   user_id = ${user_id} ORDER BY order_date DESC `;
@@ -53,38 +39,31 @@ cartRouter.get("/:user_id/my-order", async (req, res) => {
 
 // ---------------------- order-complete -------------------------------
 cartRouter.get("/order-complete", async (req, res) => {
-  let output = {
-    success: false,
-    rows: [],
-  };
-
   // 選出最新一筆的order_id
   const [[sql3]] = await db.query(
     `SELECT order_id FROM order_general ORDER BY order_date DESC LIMIT 1`
   );
   const sql = `SELECT * FROM order_general JOIN user on user.user_id = order_general.user_id WHERE order_general.order_id ='${sql3.order_id}' `;
   const [rows] = await db.query(sql);
-  console.log(rows);
+
+  console.log(rows); // 資料型態[{order_date: 2024-04-29T04:27:14.000Z,}]
   for (let r of rows) {
     r.order_date = dayjs(r.order_date).format("YYYY/MM/DD");
   }
-  console.log(rows);
+
+  console.log(rows); // [{order_date: '2024/04/29'}]
   res.json(rows);
 });
 
 //---------------------- 消費紀錄細項 order-d ----------------------
 cartRouter.get("/order-d/:oid", async (req, res) => {
-  console.log("nice");
   let output = {
     success: false,
     result: [],
   };
 
-  // const order_id = parseInt(req.params.oid);
   const order_id = req.params.oid;
-  console.log(order_id);
-  //   const order_id = req.params.order_id;
-  // 沒問題的sql: SELECT * FROM order_general JOIN oder_detail ON oder_detail.order_id = order_general.order_id JOIN product_img ON product_img.product_id = oder_detail.product_id WHERE order_general.order_id ='4354' AND product_img.showed_1st=1;
+
   const sql = `SELECT * FROM order_general JOIN oder_detail ON oder_detail.order_id = order_general.order_id JOIN product ON product.product_id = oder_detail.product_id JOIN product_img ON product_img.product_id = oder_detail.product_id JOIN user ON order_general.user_id = user.user_id WHERE oder_detail.order_id LIKE '%${order_id}%' AND product_img.showed_1st=1 AND user.user_id = 22 `;
   const [result] = await db.query(sql);
   console.log(result);
@@ -99,22 +78,19 @@ cartRouter.get("/order-d/:oid", async (req, res) => {
   res.json(output);
 });
 
-// 成立訂單 寫入資料庫
+// ---------------------- 成立訂單 寫入資料庫 ---------------------------
 
 cartRouter.post("/", async (req, res) => {
   let {
-    payment_status,
     user_id,
     payment_method,
     order_amount,
     delivery_method,
     delivery_name,
     delivery_address,
-    order_id,
     data,
   } = req.body;
-  // const user_id = req.body.user_id;
-  console.log(data);
+
   let output = {
     success: false,
     rows: [],
@@ -123,29 +99,23 @@ cartRouter.post("/", async (req, res) => {
   const uuid = uuidv4();
   try {
     const sql = `INSERT INTO order_general(order_id, payment_status, user_id, payment_method, order_amount, delivery_method, delivery_name, delivery_phone, delivery_address, delivery_status) VALUES ('${uuid}', '已付款', ${user_id}, 'LINE PAY', ${order_amount}, '${delivery_method}', NULL, NULL, '${delivery_address}', '備貨中')`;
-    console.log("看這裡ㄚ");
-    console.log(sql);
 
     const [result] = await db.query(sql);
-    // console.log(result);
+
     // 可以取得剛才新增紀錄的id流水號
-    // const orderInsertId = result.insertId;
     const [[sql3]] = await db.query(
       `SELECT order_id FROM order_general ORDER BY order_date DESC LIMIT 1`
     );
-    console.log(sql3);
-    // const sql2 = data.map((v, i) => {
-    //   return `INSERT INTO oder_detail (orderproduct_id, order_id, product_id, order_quantity, score, content) VALUES (NULL, '${sql3.order_id}', ${v.product_id}, ${v.quantity}, NULL, "")`;
-    // });
 
+    // insert into 『order_detail』
     const sql2Promises = data.map((v, i) => {
       return db.query(
         `INSERT INTO oder_detail (orderproduct_id, order_id, product_id, order_quantity, score, content) VALUES (NULL, '${sql3.order_id}', ${v.product_id}, ${v.quantity}, NULL, "")`
       );
     });
-    const result2Array = await Promise.all(sql2Promises);
 
-    console.log(result2Array);
+    // Promise.all() --> 讓pormise.all()中的物件同時執行查詢，並在查詢完成後一次性得到結果，能更快的完成操作
+    const result2Array = await Promise.all(sql2Promises);
 
     res.json({
       success: !!result.affectedRows,
@@ -171,12 +141,22 @@ cartRouter.post("/del-detail", async (req, res) => {
     const [[sql3]] = await db.query(
       `SELECT order_id FROM order_general ORDER BY order_date DESC LIMIT 1`
     );
-    // const sql = `UPDATE order_general SET delivery_name='${delivery_name}',delivery_phone='${delivery_phone}',delivery_address='${delivery_address}' WHERE
-    // order_id='${sql3.order_id}'`;
+    // console.log(sql3); // { order_id: '377eaa4e-1ad0-4202-9673-3d9b52c59738' }
+
     const sql = `UPDATE order_general SET delivery_name='${delivery_name}',delivery_phone='${delivery_phone}' WHERE 
     order_id='${sql3.order_id}'`;
-    // console.log(sql);
+
     const [result] = await db.query(sql);
+    console.log(result);
+    // ResultSetHeader {
+    //   fieldCount: 0,
+    //   affectedRows: 1,
+    //   insertId: 0,
+    //   info: 'Rows matched: 1  Changed: 1  Warnings: 0',
+    //   serverStatus: 2,
+    //   warningStatus: 0,
+    //   changedRows: 1
+    // }
     res.json({
       success: !!result.affectedRows,
     });
@@ -187,39 +167,7 @@ cartRouter.post("/del-detail", async (req, res) => {
   }
 });
 
-// ---------------------- 購物車詳細頁 line pay --------------------
-// cartRouter.get("/", async (req, res) => {
-//   let output = {
-//     success: false,
-//     rows: [],
-//   };
-
-//   const sql =
-//     "SELECT * FROM cartproduct_detail JOIN product ON cartproduct_detail.product_id = product.product_id LEFT JOIN product_img ON cartproduct_detail.product_id = product_img.product_id LEFT JOIN user ON cartproduct_detail.user_id = user.user_id WHERE cartproduct_detail.user_id = 10 AND product_img.showed_1st=1;";
-//   const [rows] = await db.query(sql);
-//   console.log(rows);
-//   res.json(rows);
-// });
-
-// ------------------ 購物車資料庫刪除功能 ---------------
-// cartRouter.get("/:product_id", async (req, res) => {
-//   let output = {
-//     success: false,
-//     result: [],
-//   };
-//   const product_id = parseInt(req.params.product_id);
-//   const sql = `DELETE FROM cartproduct_detail WHERE product_id = '${product_id}' AND user_id = 10 `;
-//   const [result] = await db.query(sql);
-//   res.json({
-//     success: !!result.affectedRows,
-//     // sid, 看他當初給的sid是多少
-//     product_id,
-//   });
-// });
-
 // --------------line pay---------
-
-// sample data
 
 const orders = {
   body: {
@@ -374,7 +322,7 @@ cartRouter.get("/create-Order", async (req, res) => {
 });
 
 // ------------------------- test linepay ------------------------
-// "/createOrder/:oid"
+
 cartRouter.get("/payMethod", async (req, res) => {
   let output = {
     success: false,
@@ -385,25 +333,19 @@ cartRouter.get("/payMethod", async (req, res) => {
   // console.log(order_id);
 
   try {
-    // 1018
     const [[sql3]] = await db.query(
       `SELECT order_id FROM order_general ORDER BY order_date DESC LIMIT 1`
     );
     const oo = sql3.order_id;
-    console.log(oo);
-    // const todo = sql3.order_id;
     // const todos = todo.split("-")[0];
-    // console.log(todos);
 
     // '%${sql3.order_id}%'
     const sql = `SELECT * FROM order_general JOIN oder_detail ON oder_detail.order_id = order_general.order_id JOIN product ON product.product_id = oder_detail.product_id JOIN product_img ON product_img.product_id = oder_detail.product_id JOIN user ON order_general.user_id = user.user_id WHERE oder_detail.order_id = '${oo}' AND product_img.showed_1st=1 AND user.user_id = 22`;
-    const [result] = await db.query(sql);
-    console.log(result);
+    const [result] = await db.query(sql); // 得到資料庫中所需的資料 [{}]
 
     // 格式化 packages 1-1
     function formatData(result) {
       const b = result[0].order_date;
-      // console.log(b);
       return [
         {
           id: b,
@@ -421,56 +363,43 @@ cartRouter.get("/payMethod", async (req, res) => {
     }
     // 格式化 packages 1-2
     const formattedData = formatData(result);
-    // 看packages 1-2格式化的樣子
+
     // console.log(), 使用JSON.stringify, 因若不用json.stringify, 它可能以[Object]的形式顯示，而不是展開嵌套對象的詳細內容。這是一種簡化的表示方法，防止在控制台中顯示大量的嵌套數據。
     // console.log(JSON.stringify(formattedData, null, 2));
 
+    // 簽章
     const linePayClient = createLinePayClient({
       channelId: "2001065647",
       channelSecretKey: "5325621a629813e1a10602cc06f96db5",
       env: "development",
     });
 
-    // 1018 -change orderId  & product_id
-    // const b = result[0].order_date;
-    // console.log(b);
+    // 送出 Line Pay request
     const toLine = await linePayClient.request.send({
       body: {
         amount: result[0].order_amount,
         currency: "TWD",
         orderId: result[0].order_id,
-        // 原本ok的 orderId: result[0].linpay,
         packages: formattedData,
         redirectUrls: {
-          // youtube的做法
           // confirmUrl: `${LINEPAY_RETURN_HOST} ${LINEPAY_RETURN_CONFIRM_URL}`,
           // cancelUrl: `${LINEPAY_RETURN_HOST} ${LINEPAY_RETURN_CANCEL_URL}`,
-          // 家教的做法
-          // confirmUrl: "http:localhost:3080/cart",
-          // cancelUrl: "http:localhost:3080/cart",
-          // 1018 --> "http:localhost:3080/cart/order-complete"
           confirmUrl: "http:localhost:3080/cart/order-complete",
           cancelUrl: "linePay/cancel",
         },
       },
     });
+    // util.inspect --> 物件轉字串
     console.log(util.inspect(toLine, { depth: Infinity, colors: true }));
 
     // cors問題
-    router.use(cors(corsOptions));
+    // router.use(cors(corsOptions));
     // solution 2
     if (toLine?.body?.returnCode === "0000") {
       const aaa = toLine?.body?.info?.paymentUrl?.web;
       res.json(aaa);
-      // console.log(webPaymentUrl);
     }
 
-    // solution3
-
-    // const aa = util.inspect(toLine, { depth: Infinity, colors: true });
-    // console.log(aa);
-
-    // ------ 1017 add -------
     // 使用可選串連 --> 『?.』 因line pay回覆結構每次不相同, 使用站位運算符讓我們在讀取深度嵌套的對象屬性時，不必明確檢查每一個層級是否存在。如果某個層級不存在，它會返回 undefined，而不會拋出錯誤
     // if (res?.body?.returnCode === "0000") {
     //   res.redirect(res?.body.info.paymentUrl.web);
@@ -487,9 +416,9 @@ cartRouter.get("/order-complete/:transactionId/:orderId", async (req, res) => {
     `SELECT order_amount FROM order_general ORDER BY order_date DESC LIMIT 1`
   );
 
-  console.log(sql3);
+  console.log(sql3); // { order_amount: ? }
   const orderAmount = sql3.order_amount;
-  console.log("527----------", req.params);
+  console.log("=======", req.params);
   let output = {
     success: false,
     result: [],
@@ -503,20 +432,17 @@ cartRouter.get("/order-complete/:transactionId/:orderId", async (req, res) => {
   });
 
   try {
-    const lastLine = await linePayClient.confirm.send(
-      // {confirmRequest},
-      {
-        transactionId: tran,
-        body: {
-          currency: "TWD",
-          // amount需要查資料庫的訂單
-          amount: orderAmount,
-        },
-      }
-    );
-    console.log("我成功了");
+    const lastLine = await linePayClient.confirm.send({
+      transactionId: tran,
+      body: {
+        currency: "TWD",
+        // amount需要查資料庫的訂單
+        amount: orderAmount,
+      },
+    });
+    console.log("==================success==============");
+
     console.log(util.inspect(lastLine, { depth: Infinity, colors: true }));
-    console.log("hihihi");
   } catch (e) {
     console.log("error", e);
   }
@@ -544,7 +470,7 @@ cartRouter.post("/wishList", async (req, res) => {
   )}, ${parseInt(pid)})`;
 
   const [result] = await db.query(sql);
-  // console.log(result);
+  // console.log(result); 是object
   // result 長這樣
   // ResultSetHeader {
   //   fieldCount: 0,
@@ -554,11 +480,10 @@ cartRouter.post("/wishList", async (req, res) => {
   //   serverStatus: 2,
   //   warningStatus: 0,
   //   changedRows: 0}
-
   if (result.affectedRows) {
     const success = true;
     res.send(success);
-    console.log(success);
+    // console.log(success);
   }
 });
 
