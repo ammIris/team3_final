@@ -3,7 +3,6 @@ import styles from "../order-d.module.css";
 import MyNavbar from "@/components/layout/default-layout/navbar-main/index";
 import Footer from "@/components/layout/default-layout/footer";
 import style from "@/pages/product/list.module.css";
-import productDetail from "@/pages/product/[pid]";
 import { Helmet } from "react-helmet";
 import ProductComment from "@/components/cart/product-comment";
 import { useRouter } from "next/router";
@@ -22,20 +21,11 @@ export default function OrderComplete() {
 
       fetch(`http://localhost:3002/api/cart/order-d/${oid}`, {
         method: "get",
-        headers: {
-          "Content-Type": "application/json",
-        },
       })
         .then((r) => r.json())
         .then((obj) => {
           setData(obj);
-          console.log(obj);
-          // 計算總件數
-          // const ttqValue = obj.result.reduce(
-          //   (acc, v) => acc + v.order_quantity,
-          //   0
-          // );
-          // setTtq(ttqValue);
+          console.log(obj); // {success: true, result: Array(1)}
         })
         .catch((ex) => {
           console.log(ex);

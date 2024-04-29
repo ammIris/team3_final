@@ -43,7 +43,6 @@ export default function CartDetail() {
       timer: 1500,
       position: "top",
       width: "250px",
-      // height: "20px",
       text: "已更新願望清單",
       icon: "success",
     });
@@ -52,8 +51,11 @@ export default function CartDetail() {
   // 計算購物車 - 數量＆總額
   const calculateTotal = () => {
     // 計算所有商品的小計
-    const subtotal = data.reduce((acc, v) => acc + v.price * v.quantity, 0);
+    const subtotal = data.reduce((acc, v) => {
+      return acc + v.price * v.quantity;
+    }, 0);
 
+    // 購物車總數量
     const productTotal = data.reduce((acc, v) => acc + v.quantity, 0);
     const shippingFee = subtotal >= 600 ? 0 : 60;
     // 總計
@@ -109,26 +111,17 @@ export default function CartDetail() {
     }
   };
 
-  // if (getCartItem.quantity <= 0) {
-  //   localStorage.removeItem("product_id");
-  //   localStorage.setItem("cart", JSON.stringify(getCartItem));
-  // }
-
   // 運送方式
-  const deliveryMethod = ["請選擇運送方式", "宅配", "7-11超商取貨"];
+  // const deliveryMethod = ["請選擇運送方式", "宅配", "7-11超商取貨"];
   const [delivery, setDelivery] = useState(["請選擇運送方式"]);
 
   // 訂單寫入資料庫
   const insertDatabase = () => {
     const getUserid = JSON.parse(localStorage.getItem("auth"));
     const getUser = getUserid.user_id;
-    // const orderTotal = total;
     const orderTotal = calculateTotal().total;
     const a = `${store711.storename}`;
-    console.log(a);
     const b = `${store711.storeaddress}`;
-    console.log("妍寶");
-    console.log(b);
     if (getUser) {
       fetch("http://localhost:3002/api/cart", {
         method: "post",
@@ -230,11 +223,9 @@ export default function CartDetail() {
                           src={`images/product/${v.product_img}`}
                           alt=""
                         />
-                        {/* <p>123</p> */}
                       </td>
                       <td className={styles.cutBorder + " align-middle"}>
                         {v.product_name}
-                        {/* <span>{v.product_id}</span> */}
                       </td>
                       <td className={styles.cutBorder + " align-middle"}>
                         <button

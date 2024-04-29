@@ -15,13 +15,10 @@ export default function NavCart() {
     }
   }, [run]);
 
-  // const router = useRouter();
   return (
     <>
       {data &&
         data.map((v, i) => {
-          // console.log(v || 0);
-
           return (
             <div key={i} className="d-flex w-100 border-top border-bottom py-3">
               <div className="w-50">

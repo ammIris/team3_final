@@ -7,7 +7,6 @@ import secstyle from "@/pages/cart/del-detail.module.css";
 import productDetail from "@/pages/product/[pid]";
 import { Helmet } from "react-helmet";
 import { useRouter } from "next/router";
-import Link from "next/link";
 
 export default function PayMethod() {
   const [data, setData] = useState([]);
@@ -18,11 +17,6 @@ export default function PayMethod() {
   const [payMethod, setPayMethod] = useState("");
   // 發票
   const [invoice, setInvoice] = useState(false);
-  const [selectedValue, setSelectedValue] = useState("giveDog");
-  const options = [
-    { invoiceName: "愛貓協會(921314)", value: "giveCat " },
-    { invoiceName: "台灣流浪動物希望協會(119)", value: "giveDog" },
-  ];
   // 錯誤用初始狀態
   const originError = { paymethod: "" };
   const [error, setError] = useState(originError);
@@ -48,26 +42,17 @@ export default function PayMethod() {
   // const order_id = "4354";
   useEffect(() => {
     if (router.isReady) {
-      console.log(router.asPath);
-      // 1018 先註
-      // const oid = router.query.payMethod;
-
-      // console.log(oid);
-      // 因一開始使用, const oid = router.query.order_id; oid顯示undefined !
+      // console.log(router.asPath); // cart/payMethod
       //router.asPath --> 可看現在router抓到的網址
-      // console.log(typeof oid);
-      // const oid = JSON.stringify(ooo);
-      //  1018 ----> `http://localhost:3002/api/cart/payMethod/${oid}`
+      // const oid = router.query.payMethod;
+      // 因一開始使用, const oid = router.query.order_id; oid顯示undefined !
+
       fetch(`http://localhost:3002/api/cart/payMethod`, {
         method: "get",
-        headers: {
-          "Content-Type": "application/json",
-        },
       })
         .then((r) => r.json())
         .then((obj) => {
           setData(obj);
-          console.log("---------------------------");
           console.log(obj);
         })
         .catch((ex) => {
@@ -352,11 +337,7 @@ export default function PayMethod() {
         </form>
         <div className="container d-flex justify-content-center my-5">
           <a href={data}>
-            <button
-              type="submit"
-              // onClick={handleSend}
-              className="btn btn-middle"
-            >
+            <button type="submit" className="btn btn-middle">
               前往結帳
             </button>
           </a>

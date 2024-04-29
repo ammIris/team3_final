@@ -5,13 +5,8 @@ import Footer from "@/components/layout/default-layout/footer";
 import productDetail from "../product/[pid]";
 import style from "@/pages/product/list.module.css";
 import { object } from "prop-types";
-import Link from "next/link";
 import { clearConfigCache } from "prettier";
 import { Helmet } from "react-helmet";
-import { useRouter } from "next/router";
-
-// 想引入,but..........................
-// import selectAddress from "@/components/cart/select-address"
 
 export default function DelDetail() {
   //  ------------------------------ 訂購人資訊 (初始化) ------------------------------
@@ -32,10 +27,13 @@ export default function DelDetail() {
   const [isChecked, setIsChecked] = useState(false);
   const [isChecked2, setIsChecked2] = useState(false);
 
-  // 快速按鈕
   const handleCLick = () => {
     setIsChecked(!isChecked);
-    if (!isChecked) {
+  };
+
+  // 快速按鈕
+  useEffect(() => {
+    if (isChecked) {
       const auth = JSON.parse(localStorage.getItem("auth"));
       const { user_name, user_phone, user_email } = auth;
       const pur = {
@@ -52,12 +50,15 @@ export default function DelDetail() {
         purchaserEmail: "",
       });
     }
+  }, [isChecked]);
+
+  const receiverClick = () => {
+    setIsChecked2(!isChecked2);
   };
 
   // 快速按鈕
-  const receiverClick = () => {
-    setIsChecked2(!isChecked2);
-    if (!isChecked2) {
+  useEffect(() => {
+    if (isChecked2) {
       const info = JSON.parse(localStorage.getItem(`auth`));
       const { user_name, user_phone } = info;
       const receiver = { receiveName: user_name, receivePhone: user_phone };
@@ -65,11 +66,10 @@ export default function DelDetail() {
     } else {
       setReceiver({ receiveName: "", receivePhone: "" });
     }
-  };
-
-  const router = useRouter();
+  }, [isChecked2]);
 
   // ------------------------------ 錯誤用初始狀態 ------------------------------
+  // 訂購人錯誤用狀態
   const originErrors = {
     purchaserName: "",
     purchaserPhone: "",
@@ -77,8 +77,7 @@ export default function DelDetail() {
   };
   const [errors, setErrors] = useState(originErrors);
 
-  // -----------------error try----------------------
-
+  // 收件人錯誤用狀態
   const originerror2 = {
     receiveName: "",
     receivePhone: "",
@@ -97,42 +96,31 @@ export default function DelDetail() {
     setReceiver(newReceiver);
   };
 
+  // 變更資料庫data
   const aaa = (e) => {
-    // 少人用formData, 換種方式寫
     const formData = new FormData(e.currentTarget);
-    const values = [...formData.values()];
-    const getUserid = JSON.parse(localStorage.getItem("auth"));
-    const getUser = getUserid.user_id;
     const getName = formData.get("receiveName");
     const getPhone = formData.get("receivePhone");
-    // 指定從values中的第6個index開始取值, 返回新的陣列
-    // 在用join把陣列中的字串合併
-    const aaa = values.slice(6);
-    const bbb = aaa.join("");
-    const getCity = bbb;
 
-    if (getUser) {
-      fetch("http://localhost:3002/api/cart/del-detail", {
-        method: "post",
-        body: JSON.stringify({
-          user_id: getUser,
-          delivery_name: getName,
-          delivery_phone: getPhone,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
+    fetch("http://localhost:3002/api/cart/del-detail", {
+      method: "post",
+      body: JSON.stringify({
+        delivery_name: getName,
+        delivery_phone: getPhone,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((r) => r.json())
+      .then((obj) => {
+        console.log(obj);
+        // 資料寫入成功，進行轉址
+        window.location.href = "http://localhost:3080/cart/payMethod";
       })
-        .then((r) => r.json())
-        .then((obj) => {
-          console.log(obj);
-          // 資料寫入成功，進行轉址
-          window.location.href = "http://localhost:3080/cart/payMethod";
-        })
-        .catch((ex) => {
-          console.log(ex);
-        });
-    }
+      .catch((ex) => {
+        console.log(ex);
+      });
   };
   const handleSubmit = (e) => {
     //阻擋表單預設的送出行為
@@ -192,14 +180,10 @@ export default function DelDetail() {
 
     if (hasError) {
       setErrors(newErrors);
-      // --------try-----
       setError2(newErrors2);
       return;
     }
     aaa(e);
-    // 認證通過
-
-    // setIsAuth(true);
   };
 
   // --------------------------- 下拉式地址選單 ------------------------------
@@ -867,11 +851,10 @@ export default function DelDetail() {
                   type="checkbox"
                   id="update-info"
                   className="me-1"
+                  checked={isChecked}
                   onChange={() => {
-                    // setIsChecked(e.target.checked);
                     handleCLick();
                   }}
-                  checked={isChecked}
                 />
                 <label htmlFor="update-info">
                   <span id="update-info">同會員資料</span>
@@ -895,13 +878,13 @@ export default function DelDetail() {
             </div>
             <div className="col-12">
               <input
-                value={purchaser.purchaserName}
+                id="buyer"
                 name="purchaserName"
                 type="text"
                 className={styles.inputframe + " purchaserName"}
-                id="buyer"
                 placeholder=" 請輸入姓名"
                 autoFocus
+                value={purchaser.purchaserName}
                 onChange={handleFieldChange}
               />
             </div>
@@ -1073,7 +1056,6 @@ export default function DelDetail() {
               />
             </div>
           </div>
-
           {/* 手機號碼 */}
           <div className="row mb-2">
             <label

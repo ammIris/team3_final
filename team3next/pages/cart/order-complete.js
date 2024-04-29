@@ -3,8 +3,6 @@ import styles from "./order-complete.module.css";
 import MyNavbar from "@/components/layout/default-layout/navbar-main/index";
 import Footer from "@/components/layout/default-layout/footer";
 import style from "@/pages/product/list.module.css";
-import productDetail from "@/pages/product/[pid]";
-import swal from "sweetalert2";
 import { Helmet } from "react-helmet";
 import Pay from "@/components/cart/LoadingLinePay";
 import { useRouter } from "next/router";
@@ -14,31 +12,18 @@ export default function OrderComplete() {
   const [lineData, setLineData] = useState("");
   const router = useRouter();
 
-  // const sweet = () => {
-  //   new swal({
-  //     title: "訂單已成立!",
-  //     text: "訂單詳細內容請至會員中心查詢",
-  //     icon: "success",
-  //     timer: 1500,
-  //   });
-  // };
-
   useEffect(() => {
     fetch("http://localhost:3002/api/cart/order-complete")
       .then((r) => r.json())
       .then((obj) => {
         setData(obj);
-        console.log(obj);
+        console.log(obj); // [{}]
       });
   }, []);
 
   const { transactionId, orderId } = router.query;
-  // const aaaa = router.asPath
-  //     console.log('35----------',transactionId)
-  //     console.log('36----------',orderId)
   useEffect(() => {
     if (router.isReady) {
-      // 裡面放變數, 外面一定要是``, 不能是""
       fetch(
         `http://localhost:3002/api/cart/order-complete/${
           "transactionId=" + transactionId
