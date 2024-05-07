@@ -9,13 +9,13 @@ import "dotenv/config.js";
 
 const cartRouter = express.Router();
 
-const corsOptions = {
-  credentials: true,
-  origin: (origin, callback) => {
-    console.log({ origin });
-    callback(null, true);
-  },
-};
+// const corsOptions = {
+//   credentials: true,
+//   origin: (origin, callback) => {
+//     console.log({ origin });
+//     callback(null, true);
+//   },
+// };
 
 // ----------------------消費紀錄 my-order ----------------------
 cartRouter.get("/:user_id/my-order", async (req, res) => {
@@ -66,8 +66,7 @@ cartRouter.get("/order-d/:oid", async (req, res) => {
 
   const sql = `SELECT * FROM order_general JOIN oder_detail ON oder_detail.order_id = order_general.order_id JOIN product ON product.product_id = oder_detail.product_id JOIN product_img ON product_img.product_id = oder_detail.product_id JOIN user ON order_general.user_id = user.user_id WHERE oder_detail.order_id LIKE '%${order_id}%' AND product_img.showed_1st=1 AND user.user_id = 22 `;
   const [result] = await db.query(sql);
-  console.log(result);
-  console.log("-----------------------------------");
+  console.log(result); // [{}]
   for (let r of result) {
     r.order_date = dayjs(r.order_date).format("YYYY/MM/DD hh:mmA");
   }
@@ -131,18 +130,17 @@ cartRouter.post("/", async (req, res) => {
 
 cartRouter.post("/del-detail", async (req, res) => {
   let { delivery_name, delivery_phone } = req.body;
-
-  let output = {
-    success: false,
-    rows: [],
-  };
+  // let output = {
+  //   success: false,
+  //   rows: [],
+  // };
 
   try {
     const [[sql3]] = await db.query(
       `SELECT order_id FROM order_general ORDER BY order_date DESC LIMIT 1`
     );
     // console.log(sql3); // { order_id: '377eaa4e-1ad0-4202-9673-3d9b52c59738' }
-
+    // 需設條件, 不然delivery欄位全部的值都會被更改
     const sql = `UPDATE order_general SET delivery_name='${delivery_name}',delivery_phone='${delivery_phone}' WHERE 
     order_id='${sql3.order_id}'`;
 
@@ -230,7 +228,7 @@ cartRouter
     console.log(order);
     const order_id = parseInt(new Date().getTime() / 1000);
     orders.order_id = order_id;
-    // ??? ??
+
     order[order.order_id] = order;
     // 把建好的訂單送到前端去
     //  res.render("checkout") --> 前端要渲染出什麼畫面出來
@@ -250,7 +248,6 @@ cartRouter.get("/create-Order", async (req, res) => {
   try {
     //建立訂單
     const uuid = uuidv4();
-    // 注意：user_id寫死 36 / order_amount寫死: 500
     // const sql = `INSERT INTO order_general(order_id, payment_status, user_id, payment_method, order_amount, delivery_method, delivery_address, delivery_status, order_date) VALUES (${uuid}, '未付款', 36, 'LINE PAY', 500, '宅配', ${delivery_address}, '備貨中', now())`;
     // const [result] = await db.query(sql);
     // 把cart拿掉
@@ -259,7 +256,6 @@ cartRouter.get("/create-Order", async (req, res) => {
 
     const dataToInsert = req.packages.map((idpackage) => {
       return {
-        // 這裡的uuid要去帶sql的uuid?
         order_id: uuid,
         product_id: idpackage.id,
         order_quantity: idpackage.products[0].quantity,
@@ -272,15 +268,6 @@ cartRouter.get("/create-Order", async (req, res) => {
         order.order_quantity,
       ]),
     ]);
-    // 寫法2 （嚴謹）
-
-    // db.query(query, [dataToInsert.map(item => [item.name, item.age])], (err, results) => {
-    //     if (err) {
-    //       console.error(err);
-    //     } else {
-    //       console.log(`${results.affectedRows} 行被插入`);
-    //     }
-    //   });
 
     const res = await createlinePayClient.request.send({
       body: req,
@@ -323,41 +310,39 @@ cartRouter.get("/create-Order", async (req, res) => {
 
 // ------------------------- test linepay ------------------------
 
-cartRouter.get("/payMethod", async (req, res) => {
-  let output = {
-    success: false,
-    result: [],
-  };
-  //1018註掉
-  // const order_id = req.params.oid;
-  // console.log(order_id);
+cartRouter.post("/payMethod", async (req, res) => {
+  // console.log(req.body); // { uid: 22 }
+  const { uid } = req.body;
 
   try {
     const [[sql3]] = await db.query(
       `SELECT order_id FROM order_general ORDER BY order_date DESC LIMIT 1`
     );
-    const oo = sql3.order_id;
-    // const todos = todo.split("-")[0];
+    const getOrderId = sql3.order_id;
 
     // '%${sql3.order_id}%'
-    const sql = `SELECT * FROM order_general JOIN oder_detail ON oder_detail.order_id = order_general.order_id JOIN product ON product.product_id = oder_detail.product_id JOIN product_img ON product_img.product_id = oder_detail.product_id JOIN user ON order_general.user_id = user.user_id WHERE oder_detail.order_id = '${oo}' AND product_img.showed_1st=1 AND user.user_id = 22`;
-    const [result] = await db.query(sql); // 得到資料庫中所需的資料 [{}]
+    const sql = `SELECT * FROM order_general JOIN oder_detail ON oder_detail.order_id = order_general.order_id JOIN product ON product.product_id = oder_detail.product_id JOIN product_img ON product_img.product_id = oder_detail.product_id JOIN user ON order_general.user_id = user.user_id WHERE oder_detail.order_id = '${getOrderId}' AND product_img.showed_1st=1 AND user.user_id = '${uid}'`;
+    const [result] = await db.query(sql); // 得到 [{資料庫中所需的資料}]
 
     // 格式化 packages 1-1
     function formatData(result) {
-      const b = result[0].order_date;
       return [
         {
-          id: b,
-          // id: result[0].order_id,
+          id: result[0].order_id,
           amount: result[0].order_amount,
-          products: [
-            {
-              name: result[0].product_name,
-              quantity: result[0].order_quantity,
-              price: result[0].price,
-            },
-          ],
+          products: result.map((v, i) => ({
+            name: v.product_name,
+            quantity: v.order_quantity,
+            price: v.price,
+          })),
+
+          // [
+          //   {
+          //     name: result[0].product_name,
+          //     quantity: result[0].order_quantity,
+          //     price: result[0].price,
+          //   },
+          // ],
         },
       ];
     }
@@ -384,6 +369,7 @@ cartRouter.get("/payMethod", async (req, res) => {
         redirectUrls: {
           // confirmUrl: `${LINEPAY_RETURN_HOST} ${LINEPAY_RETURN_CONFIRM_URL}`,
           // cancelUrl: `${LINEPAY_RETURN_HOST} ${LINEPAY_RETURN_CANCEL_URL}`,
+          // confirmUrl : LINE Pay Server向Merchant Server請求confirmUrl
           confirmUrl: "http:localhost:3080/cart/order-complete",
           cancelUrl: "linePay/cancel",
         },
@@ -395,15 +381,12 @@ cartRouter.get("/payMethod", async (req, res) => {
     // cors問題
     // router.use(cors(corsOptions));
     // solution 2
+    // 如果請求成功, 回傳sandbox網址
+    // 使用可選串連 --> 『?.』 因line pay回覆結構每次不相同, 使用站位運算符讓我們在讀取深度嵌套的對象屬性時，不必明確檢查每一個層級是否存在。如果某個層級不存在，它會返回 undefined，而不會拋出錯誤
     if (toLine?.body?.returnCode === "0000") {
       const aaa = toLine?.body?.info?.paymentUrl?.web;
       res.json(aaa);
     }
-
-    // 使用可選串連 --> 『?.』 因line pay回覆結構每次不相同, 使用站位運算符讓我們在讀取深度嵌套的對象屬性時，不必明確檢查每一個層級是否存在。如果某個層級不存在，它會返回 undefined，而不會拋出錯誤
-    // if (res?.body?.returnCode === "0000") {
-    //   res.redirect(res?.body.info.paymentUrl.web);
-    // }
   } catch (e) {
     console.log("error", e);
   }
@@ -416,15 +399,10 @@ cartRouter.get("/order-complete/:transactionId/:orderId", async (req, res) => {
     `SELECT order_amount FROM order_general ORDER BY order_date DESC LIMIT 1`
   );
 
-  console.log(sql3); // { order_amount: ? }
   const orderAmount = sql3.order_amount;
-  console.log("=======", req.params);
-  let output = {
-    success: false,
-    result: [],
-  };
+  // 將transactionId=20240506取代成20240506
   const tran = req.params.transactionId.replace("transactionId=", "");
-
+  // 簽章
   const linePayClient = createLinePayClient({
     channelId: "2001065647",
     channelSecretKey: "5325621a629813e1a10602cc06f96db5",
@@ -441,7 +419,6 @@ cartRouter.get("/order-complete/:transactionId/:orderId", async (req, res) => {
       },
     });
     console.log("==================success==============");
-
     console.log(util.inspect(lastLine, { depth: Infinity, colors: true }));
   } catch (e) {
     console.log("error", e);
@@ -453,8 +430,13 @@ const callback_url = process.env.SHIP_711_STORE_CALLBACK_URL;
 
 // POST
 cartRouter.post("/711", function (req, res, next) {
-  console.log(callback_url);
-  //console.log(req.body)
+  // console.log(req.body);
+  //   storeid: '126616',
+  // storename: '立行門市',
+  // storeaddress: '新北市三重區力行路二段158號160號',
+  // outside: '0',
+  // ship: '1111111',
+  // TempVar: ''
   let searchParams = new URLSearchParams(req.body);
   res.redirect(callback_url + "?" + searchParams.toString());
 });
@@ -483,7 +465,6 @@ cartRouter.post("/wishList", async (req, res) => {
   if (result.affectedRows) {
     const success = true;
     res.send(success);
-    // console.log(success);
   }
 });
 
