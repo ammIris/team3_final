@@ -2,19 +2,18 @@ import { useState, useEffect } from "react";
 import styles from "./cart-detail.module.css";
 import MyNavbar from "@/components/layout/default-layout/navbar-main/index";
 import Footer from "@/components/layout/default-layout/footer";
-import { useRouter } from "next/router";
 import { Helmet } from "react-helmet";
 import { useShip711StoreOpener } from "@/hooks/use-ship-711-store";
 import Swal from "sweetalert2";
 
 export default function CartDetail() {
   const [data, setData] = useState([]);
-  const router = useRouter();
   // localStorage 取資料
+  // Q: 為什麼無法在useeffect外, 直接使用localStorage?
   useEffect(() => {
     const getCartItem = JSON.parse(localStorage.getItem("cart"));
+    // 確保getCartItem有值
     if (getCartItem) {
-      //setData, 非同步的關係
       setData(getCartItem);
     }
   }, []);
@@ -64,6 +63,9 @@ export default function CartDetail() {
     return { subtotal, productTotal, shippingFee, total };
   };
 
+  // 寫法2
+  // const { subtotal, productTotal, shippingFee, total } = calculateTotal();
+
   // 增加數量寫入local Storage
   const updateCount = (product_id, value) => {
     // 更新 data 中的數量
@@ -103,8 +105,6 @@ export default function CartDetail() {
   const delProduct = (v) => {
     const cart = JSON.parse(localStorage.getItem("cart"));
     if (cart) {
-      // const delProductId = cart.findIndex((i) => i.product_id == v.product_id);
-      // i --> cart中的每個元素
       const trashcan = cart.filter((i) => i.product_id !== v.product_id);
       localStorage.setItem("cart", JSON.stringify(trashcan));
       setData(trashcan);
@@ -120,8 +120,8 @@ export default function CartDetail() {
     const getUserid = JSON.parse(localStorage.getItem("auth"));
     const getUser = getUserid.user_id;
     const orderTotal = calculateTotal().total;
-    const a = `${store711.storename}`;
-    const b = `${store711.storeaddress}`;
+    const a = store711.storename;
+    const b = store711.storeaddress;
     if (getUser) {
       fetch("http://localhost:3002/api/cart", {
         method: "post",
@@ -271,15 +271,10 @@ export default function CartDetail() {
                       <td></td>
                       <td></td>
                       <td>
-                        <a
-                          className={styles.trash}
-                          //   href={"/cart/" + v.product_id}
-                          // href={`/cart/${product_id}`}
-                        >
+                        <a className={styles.trash}>
                           <span
                             className="icon-trash d-flex justify-content-end"
                             onClick={(e) => {
-                              // e.preventDefault();
                               delProduct(v);
                             }}
                           ></span>

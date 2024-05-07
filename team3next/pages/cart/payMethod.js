@@ -4,11 +4,11 @@ import MyNavbar from "@/components/layout/default-layout/navbar-main/index";
 import Footer from "@/components/layout/default-layout/footer";
 import style from "@/pages/product/list.module.css";
 import secstyle from "@/pages/cart/del-detail.module.css";
-import productDetail from "@/pages/product/[pid]";
 import { Helmet } from "react-helmet";
 import { useRouter } from "next/router";
 
 export default function PayMethod() {
+  // 用來接收後端回傳的line pay sandbox網址
   const [data, setData] = useState([]);
 
   // 付款方式
@@ -48,11 +48,18 @@ export default function PayMethod() {
       // 因一開始使用, const oid = router.query.order_id; oid顯示undefined !
 
       fetch(`http://localhost:3002/api/cart/payMethod`, {
-        method: "get",
+        method: "post",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: JSON.parse(localStorage.getItem("auth")).user_id,
+        }),
       })
         .then((r) => r.json())
         .then((obj) => {
           setData(obj);
+          console.log(
+            "================================回傳網址======================"
+          );
           console.log(obj);
         })
         .catch((ex) => {
@@ -277,7 +284,6 @@ export default function PayMethod() {
                     onChange={(e) => {
                       //狀態中記錄的是每個選項被選中的值
                       setPayMethod(e.target.value);
-                      // 每次選項更改時, 重置錯誤消息
                       setError(originError);
                     }}
                   />

@@ -9,7 +9,6 @@ import { useRouter } from "next/router";
 
 export default function OrderComplete() {
   const [data, setData] = useState([]);
-  const [lineData, setLineData] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -17,10 +16,13 @@ export default function OrderComplete() {
       .then((r) => r.json())
       .then((obj) => {
         setData(obj);
+
         console.log(obj); // [{}]
       });
   }, []);
 
+  const onedoor = router.query;
+  console.log(onedoor); // {transactionId: '2024050602111945210', orderId: 'f2578bfb-86ea-4eaa-bbf4-779964fd6a8a'}
   const { transactionId, orderId } = router.query;
   useEffect(() => {
     if (router.isReady) {
@@ -48,7 +50,6 @@ export default function OrderComplete() {
   //---------------- 做linePay Loading end ---------------------
   return loading ? (
     <>
-      {" "}
       ( <MyNavbar />
       <Helmet>
         <title>食食嗑嗑-購物車</title>

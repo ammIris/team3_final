@@ -4,8 +4,8 @@ import MyNavbar from "@/components/layout/default-layout/navbar-main/index";
 import Footer from "@/components/layout/default-layout/footer";
 import productDetail from "../product/[pid]";
 import style from "@/pages/product/list.module.css";
-import { object } from "prop-types";
-import { clearConfigCache } from "prettier";
+// import { object } from "prop-types";
+// import { clearConfigCache } from "prettier";
 import { Helmet } from "react-helmet";
 
 export default function DelDetail() {
@@ -23,15 +23,19 @@ export default function DelDetail() {
     receivePhone: "",
   });
 
-  // 勾選狀態
+  // 勾選框狀態
   const [isChecked, setIsChecked] = useState(false);
   const [isChecked2, setIsChecked2] = useState(false);
 
+  // 設->勾選框狀態
   const handleCLick = () => {
     setIsChecked(!isChecked);
   };
 
-  // 快速按鈕
+  const receiverClick = () => {
+    setIsChecked2(!isChecked2);
+  };
+  // 勾選框快速按鈕
   useEffect(() => {
     if (isChecked) {
       const auth = JSON.parse(localStorage.getItem("auth"));
@@ -50,14 +54,6 @@ export default function DelDetail() {
         purchaserEmail: "",
       });
     }
-  }, [isChecked]);
-
-  const receiverClick = () => {
-    setIsChecked2(!isChecked2);
-  };
-
-  // 快速按鈕
-  useEffect(() => {
     if (isChecked2) {
       const info = JSON.parse(localStorage.getItem(`auth`));
       const { user_name, user_phone } = info;
@@ -66,7 +62,7 @@ export default function DelDetail() {
     } else {
       setReceiver({ receiveName: "", receivePhone: "" });
     }
-  }, [isChecked2]);
+  }, [isChecked, isChecked2]);
 
   // ------------------------------ 錯誤用初始狀態 ------------------------------
   // 訂購人錯誤用狀態
@@ -97,8 +93,11 @@ export default function DelDetail() {
   };
 
   // 變更資料庫data
-  const aaa = (e) => {
-    const formData = new FormData(e.currentTarget);
+  const aaa = () => {
+    // Ｑ：e.target vs. e.currentTarget 的差異？？
+    const getForm = document.getElementById("formdata");
+    const formData = new FormData(getForm);
+    // formData.get()  取得該欄位的第一個值
     const getName = formData.get("receiveName");
     const getPhone = formData.get("receivePhone");
 
@@ -122,8 +121,8 @@ export default function DelDetail() {
         console.log(ex);
       });
   };
+  // 送出前的錯誤檢查＆送出
   const handleSubmit = (e) => {
-    //阻擋表單預設的送出行為
     e.preventDefault();
 
     // 信號值
@@ -837,6 +836,7 @@ export default function DelDetail() {
         <form
           className={styles.buyerinfo + " container mt-5 w-50"}
           onSubmit={handleSubmit}
+          id={"formdata"}
         >
           <div
             className={
@@ -920,7 +920,7 @@ export default function DelDetail() {
           </div>
 
           {/* 電子信箱 */}
-          <div className="row mb-2" onSubmit={handleSubmit}>
+          <div className="row mb-2">
             <label htmlFor="email" className="form-label col-2 col-form-label">
               電子信箱
             </label>
@@ -1110,16 +1110,12 @@ export default function DelDetail() {
           </div>
 
           <div className="container d-flex justify-content-center">
-            <button className="btn btn-middle mt-5 mb-5 me-3">修改訂單</button>
             {/* onClick={()=>{
             window.location.href = " "
           }} */}
-            {/* <a href="/cart/pay-method"></a> */}
-            <a href="http://localhost:3080/cart/payMethod">
-              <button className="btn btn-middle mt-5 mb-5 ms-3" type="submit">
-                前往付款方式
-              </button>
-            </a>
+            <button className="btn btn-middle mt-5 mb-5 ms-3" type="submit">
+              前往付款方式
+            </button>
           </div>
         </form>
       </div>

@@ -6,7 +6,6 @@ export default function handleAddCart(props) {
 
   //1如果有登入
   if (localStorage.getItem("auth")) {
-    console.log(localStorage.getItem("auth"));
     //2如果商品已經設定到data了(防useEffect錯)
     if (data.rows.product_id) {
       console.log(data.rows.product_id);
@@ -48,18 +47,7 @@ export default function handleAddCart(props) {
           },
         ];
         localStorage.setItem("cart", JSON.stringify(cart));
-
-        //????? console.log(cart) >>> {} rather than [{}]
-        // const cart = [
-        //   JSON.stringify({
-        //     product_id: data.rows.product_id,
-        //     product_img: data.rowsImgs[0].product_img,
-        //     quantity: quantity,
-        //   }),
-        // ];
-        // localStorage.setItem("cart", cart);
       }
     }
   }
-  // }
 }

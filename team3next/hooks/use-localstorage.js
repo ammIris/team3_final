@@ -4,13 +4,14 @@ export default function useLocalStorage(key, initialValue) {
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
   const [storedValue, setStoredValue] = useState(() => {
+    // 用在讀取之前localStorage的值
+    // 無值--> return initialValue / 錯誤也return initialValue
     if (typeof window === "undefined") {
       return initialValue;
     }
     try {
-      // Get from local storage by key
+      // localStorage 取值
       const item = window.localStorage.getItem(key);
-      // Parse stored json or if none return initialValue
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
       // If error also return initialValue
@@ -24,10 +25,13 @@ export default function useLocalStorage(key, initialValue) {
     try {
       // Allow value to be a function so we have same API as useState
       const valueToStore =
+        // 檢查value是否為Function
         value instanceof Function ? value(storedValue) : value;
       // Save state
       setStoredValue(valueToStore);
       // Save to local storage
+      // =========== 把選擇的店設回localStorage =============
+      // 檢查程式是否在瀏覽器端運行
       if (typeof window !== "undefined") {
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
